@@ -1,0 +1,30 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    // Note: 
+    //   Modification of the pythonpath in this way allows for imports between sister directories by using vsc's debugger. 
+    //   This method requires:  
+    //      a) requires running of the files using the import with the debugger (ctl + f5) and, 
+    //      b) rquires a sperate configuration item for each file using the import.
+
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python: Module",
+            "type": "python",
+            "request": "launch",
+            "module": "project.sections.testbed_construction.testbed_construction",
+            "justMyCode": true,
+            "env": {"PYTHONPATH": "${workspaceFolder}/project/utils/"}
+        },
+        {
+            "name": "Python: Module",
+            "type": "python",
+            "request": "launch",
+            "module": "project.sections.testbed_construction.Testbed_Construction.ipynb",
+            "justMyCode": true,
+            "env": {"PYTHONPATH": "${workspaceFolder}/project/utils/"}
+        }
+    ]
+}
