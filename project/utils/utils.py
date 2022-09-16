@@ -1,3 +1,5 @@
+from ast import Raise
+
 
 def foo():
     return "World, Hello"
@@ -35,24 +37,69 @@ def set_bound_modifications(model,file):
 
     return model
 
-
-def runcases(model,path_to_cases, tgt):
+def runcases(model,path_to_cases, tgt, num_of_files=3):
     # Aimed at testing different internal flux bound cases in individual models
     i = 0
     m_gr = []
     m_tmy = []
 
-    for i in range(3):
+    for i in range(num_of_files):
         fn = str(i) + ".csv"
         with model as m: 
             m = set_bound_modifications(m,f"{path_to_cases}/{fn}")
-            m_gr.append(m.slim_optimize())
+            opt_bm = m.slim_optimize()
+            m_gr.append(opt_bm)
+
+            # Constraint the biomass flux to the computed maximum
+            # insert AG biomass flux constraint here
+            try:
+                model.reactions.BIOMASS_Ec_iHK1487_core.lower_bound = opt_bm
+            except:
+                try:
+                    model.reactions.BIOMASS_Ec_iJO1366_WT_53p95M = opt_bm
+                except AttributeError:
+                    raise 
+            # insert GD biomass flux constriant here
             m.objective = tgt
             m_tmy.append(m.slim_optimize())
 
     return m_gr, m_tmy
 
 
+
+def runcases_community(model,path_to_cases, tgt, num_of_files=3):
+    # Aimed at testing different internal flux bound cases in community  models
+    i = 0
+    m_gr = []
+    m_tmy = []
+
+    for i in range(num_of_files):
+        fn = str(i) + ".csv"
+        with model as m: 
+            m = set_bound_modifications(m,f"{path_to_cases}/{fn}")
+
+            temp = model.optimize_all()
+            opt_bm_AG = temp.AG_uc
+            opt_bm_GD = temp.GD_uc
+            print("AG BM optimal",opt_bm_AG)
+            print("GD BM optimal",opt_bm_GD)
+            # # opt_bm = m.slim_optimize()
+            # m_gr.append("x")
+
+            model.reactions.BIOMASS_Ec_iJO1366_core_53p95M__AG_uc.lower_bound = 0.818
+            model.reactions.BIOMASS_Ec_iHK1487_core__GD_uc.lower_bound = 0.829
+            # # Constrain the biomass flux to the computed maximum
+            # try:
+                # model.reactions.BIOMASS_Ec_iJO1366_core_53p95M__AG_uc.lower_bound = 0.5 * opt_bm_AG
+                # model.reactions.BIOMASS_Ec_iHK1487_core__GD_uc.lower_bound = 0.5 * opt_bm_GD
+
+            # except AttributeError:
+            #     raise
+
+            m.objective = tgt
+            m_tmy.append(m.slim_optimize())
+
+    return m_gr, m_tmy
 
 def pe_data(model_,tgt_str):
     '''
@@ -120,6 +167,44 @@ def getInternalExchangeFluxes(com, sol):
     x = x.fillna(0)
     x = x[((x.AG_uc != 0) | (x.GD_uc != 0))] # reduce to a meaningul subset of exchange reactions by removing NAN's & zeros etc
     # x = x[((x.AG_uc != 0) | (x.GD_uc != 0)) & (abs(x.AG_uc) + abs(x.GD_uc) > 0)] # reduce to a meaningul subset of exchange reactions by removing NAN's & zeros etc
+    
+    return x
+
+
+def diff_internalExFluxes(com,A,B):
+    '''
+    Compares the fluxes of two cooperative tradeoff solutions from MICOM and outputs the difference between 
+    internal exhange reaction fluxes in the two input scenarios. 
+
+    Note:  Has been hardcoded to work with AG/GD models, rework if use any other. 
+
+    Args:
+        com: The micom/cobrapy community model underlying the scenarios, required for the exchange fluxe id's
+        A: Micom cooperative tradeoff solution object.
+        B: Micom cooperative tradeoff solution object.
+
+    Returns:
+        x: Dataframe containing both the flux values for the internal exchanges of both scenarios for each strain, 
+        but also the difference between scenarios for each strain.
+
+    Raises:
+        None
+    '''
+    x = A.fluxes.T.compare(B.fluxes.T) # Handy function this
+    x['AG_diff'] = x.AG_uc.other - x.AG_uc.self # positive values mean t4 has x amount greatr flux than t1 etc
+    x['GD_diff'] = x.GD_uc.other - x.GD_uc.self # positive values mean t4 has x amount greatr flux than t1 etc
+    x['medium_diff'] = x.medium.other - x.medium.self # positive values mean t4 has x amount greater flux than t1 etc # not needed.
+    
+    # Grab names of internal exchange fluxes and trim to make compatible with flux output. 
+    int_ex = [i.id for i in com.internal_exchanges]
+    int_ex = [i[:-7] for i in int_ex]
+    # int_ex
+
+    # Narrow focus to exchange fluxes
+    x = x[x.index.isin(int_ex)].rename(columns={'self': 'testA', 'other': 'testB'}, level=-1).sort_values(by=['GD_diff'], ascending = True)
+    # x.drop(["medium","medium_diff"])
+    del x["medium"]
+    del x["medium_diff"]
     
     return x
 

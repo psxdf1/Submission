@@ -1,0 +1,1 @@
+com.cooperative_tradeoff(fraction=0.5,fluxes = True,pfba=True)

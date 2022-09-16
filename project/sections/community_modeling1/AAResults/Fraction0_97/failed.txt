@@ -1,0 +1,12 @@
+L-Arginine_L-Histidine
+L-Arginine_L-Isoleucine
+L-Arginine_L-Threonine
+L-Histidine_L-Arginine
+L-Histidine_L-Isoleucine
+L-Histidine_L-Threonine
+L-Isoleucine_L-Arginine
+L-Isoleucine_L-Histidine
+L-Isoleucine_L-Threonine
+L-Threonine_L-Arginine
+L-Threonine_L-Histidine
+L-Threonine_L-Isoleucine
